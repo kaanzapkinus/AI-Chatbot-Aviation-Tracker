@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Tracker</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header-container">
+        <h1>✈️ SkyTrack Pro</h1>
+    </header>
+
+    <main class="container">
+        <form action="/search/" method="get" class="search-container">
+            <div class="search-box">
+                <input
+                    type="text"
+                    class="search-input"
+                    name="flight"
+                    placeholder="Enter flight number..."
+                    required
+                >
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </form>
+
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
+    </main>
+
+    <!-- Chatbot -->
+    <div class="chat-container">
+        <div class="chat-header">
+            <h3>Flight Assistant</h3>
+            <button class="close-btn">&times;</button>
+        </div>
+        <div class="chat-body">
+            <div class="message bot-message">
+                Welcome! How can I help you today? ✈️
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" placeholder="Type your message...">
+            <button class="send-btn">Send</button>
+        </div>
+    </div>
+    <div class="chat-toggle">
+        <i class="fas fa-comment-alt"></i>
+    </div>
+
+    <script>
+        // Chat Toggle
+        const chatToggle = document.querySelector('.chat-toggle');
+        const chatContainer = document.querySelector('.chat-container');
+        const closeBtn = document.querySelector('.close-btn');
+
+        chatToggle.addEventListener('click', () => {
+            chatContainer.classList.toggle('active');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            chatContainer.classList.remove('active');
+        });
+
+        // Search Box Animation
+        const searchBox = document.querySelector('.search-box');
+        const searchInput = document.querySelector('.search-input');
+
+        searchInput.addEventListener('focus', () => {
+            searchBox.classList.add('active');
+        });
+
+        searchInput.addEventListener('blur', () => {
+            if(!searchInput.value) {
+                searchBox.classList.remove('active');
+            }
+        });
+
+        // Message Handling
+        const sendBtn = document.querySelector('.send-btn');
+        const chatInput = document.querySelector('.chat-input input');
+        const chatBody = document.querySelector('.chat-body');
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if(message) {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'message user-message';
+                userDiv.textContent = message;
+                chatBody.appendChild(userDiv);
+
+                setTimeout(() => {
+                    const botDiv = document.createElement('div');
+                    botDiv.className = 'message bot-message';
+                    botDiv.textContent = "I'm still learning. Please check our FAQ section.";
+                    chatBody.appendChild(botDiv);
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }, 1000);
+
+                chatInput.value = '';
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
