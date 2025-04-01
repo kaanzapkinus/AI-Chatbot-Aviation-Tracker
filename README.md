@@ -2,7 +2,6 @@
 - Search for flights using their flight ID.
 - View detailed flight information, including aircraft details and images.
 - Get information about airports, including their ICAO code.
-- Chatbot added.
 
 ---
 
@@ -18,6 +17,10 @@ To run this project, ensure you have the following installed:
 ## Installation Steps
 
 ### Step 1: Clone the Repository
+```bash
+git clone https://github.com/Canerakcasu/AIRPORTTRACKER.git
+cd AIRPORTTRACKER
+```
 
 ### Step 2: Set Up a Virtual Environment
 ```bash
@@ -76,6 +79,21 @@ If you're working on this project with friends:
    git push origin main
    ```
 5. If there are conflicts, resolve them locally and push again.
+
+---
+
+## Project Structure
+```
+AIRPORTTRACKER/
+├── flights/
+│   ├── views.py  # Contains the logic for handling requests
+│   ├── urls.py   # URL routing
+│   ├── templates/
+│   │   ├── index.html
+│   │   ├── search_results.html
+├── static/       # Contains static files like CSS and images
+├── manage.py     # Django management script
+```
 
 ---
 

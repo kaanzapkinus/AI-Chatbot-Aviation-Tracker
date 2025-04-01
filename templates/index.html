@@ -1,115 +1,296 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flight Tracker</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>SkyTrack Pro - Canlı Uçuş Takip</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'style.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Optimize Edilmiş CSS */
+        .flight-status-card {
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 25px auto;
+            max-width: 800px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: none; /* Başlangıçta gizli */
+        }
+
+        .flight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .flight-progress {
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .ai-response {
+            border-left: 3px solid #3b82f6;
+            padding-left: 15px;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
     <header class="header-container">
         <h1>✈️ SkyTrack Pro</h1>
+        <p class="header-subtitle">Gerçek Zamanlı Uçuş Takip Sistemi</p>
     </header>
 
     <main class="container">
-        <form action="/search/" method="get" class="search-container">
-            <div class="search-box">
-                <input
-                    type="text"
-                    class="search-input"
-                    name="flight"
-                    placeholder="Enter flight number..."
-                    required
-                >
-                <i class="fas fa-search search-icon"></i>
-            </div>
-        </form>
+        <!-- Uçuş Arama Bölümü -->
+        <div class="search-container">
+            <form id="flightForm" class="flight-search-form">
+                <div class="search-box">
+                    <input
+                        type="text"
+                        id="flightInput"
+                        class="search-input"
+                        placeholder="Uçuş numarası girin (Örn: TK123)"
+                        pattern="[A-Za-z]{2,3}\d{1,4}"
+                        required
+                    >
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-plane-departure"></i> Uçuşu Takip Et
+                </button>
+            </form>
+        </div>
 
-        {% if error %}
-            <div class="error-message">
-                {{ error }}
+        <!-- Uçuş Detayları -->
+        <div id="flightDetails" class="flight-status-card">
+            <div class="flight-header">
+                <h2 id="flightNumber"></h2>
+                <span id="flightStatus" class="status-badge"></span>
             </div>
-        {% endif %}
+            
+            <div class="flight-info-grid">
+                <div class="flight-info-item">
+                    <i class="fas fa-plane-departure"></i>
+                    <div>
+                        <h3>Kalkış</h3>
+                        <p id="departureInfo"></p>
+                    </div>
+                </div>
+                
+                <div class="flight-info-item">
+                    <i class="fas fa-plane-arrival"></i>
+                    <div>
+                        <h3>Varış</h3>
+                        <p id="arrivalInfo"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flight-progress">
+                <div class="progress-header">
+                    <span>Uçuş İlerlemesi</span>
+                    <span id="completionPercent"></span>
+                </div>
+                <progress id="flightProgress" value="0" max="100"></progress>
+                <div class="time-remaining" id="timeRemaining"></div>
+            </div>
+        </div>
+
+        <!-- Hata Mesajları -->
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
     </main>
 
-    <!-- Chatbot -->
+    <!-- Akıllı Asistan -->
     <div class="chat-container">
         <div class="chat-header">
-            <h3>Flight Assistant</h3>
+            <h3><i class="fas fa-robot"></i> SkyAI Asistan</h3>
             <button class="close-btn">&times;</button>
         </div>
-        <div class="chat-body">
+        <div class="chat-body" id="chatBody">
             <div class="message bot-message">
-                Welcome! How can I help you today? ✈️
+                🛫 Merhaba! Bir uçuş numarası girerek başlayın. Size şunları söyleyebilirim:
+                <ul class="ai-capabilities">
+                    <li>✔️ Gerçek zamanlı durum</li>
+                    <li>✔️ Tahmini varış süresi</li>
+                    <li>✔️ Hava durumu bilgisi</li>
+                </ul>
             </div>
         </div>
         <div class="chat-input">
-            <input type="text" placeholder="Type your message...">
-            <button class="send-btn">Send</button>
+            <input 
+                type="text" 
+                id="chatInput" 
+                placeholder="Önce uçuş numarası girin..."
+                disabled
+            >
+            <button id="sendBtn" class="send-btn" disabled>
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     </div>
     <div class="chat-toggle">
-        <i class="fas fa-comment-alt"></i>
+        <i class="fas fa-comments"></i>
     </div>
 
     <script>
-        // Chat Toggle
-        const chatToggle = document.querySelector('.chat-toggle');
-        const chatContainer = document.querySelector('.chat-container');
-        const closeBtn = document.querySelector('.close-btn');
+        // Sistem Genel Ayarları
+        let activeFlight = null;
+        const API_TIMEOUT = 15000; // 15 saniye
 
-        chatToggle.addEventListener('click', () => {
-            chatContainer.classList.toggle('active');
-        });
+        // DOM Elementleri
+        const elements = {
+            flightForm: document.getElementById('flightForm'),
+            flightInput: document.getElementById('flightInput'),
+            chatInput: document.getElementById('chatInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            chatBody: document.getElementById('chatBody'),
+            flightDetails: document.getElementById('flightDetails'),
+            errorMessage: document.getElementById('errorMessage')
+        };
 
-        closeBtn.addEventListener('click', () => {
-            chatContainer.classList.remove('active');
-        });
+        // Uçuş Takip Formu
+        elements.flightForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const flightNumber = elements.flightInput.value.trim().toUpperCase();
+            
+            if(!/^[A-Z]{2,3}\d{1,4}$/.test(flightNumber)) {
+                showError('Geçersiz uçuş formatı! Örnek: TK123');
+                return;
+            }
 
-        // Search Box Animation
-        const searchBox = document.querySelector('.search-box');
-        const searchInput = document.querySelector('.search-input');
+            try {
+                const response = await fetch(`/search/?flight=${flightNumber}`);
+                const data = await response.json();
 
-        searchInput.addEventListener('focus', () => {
-            searchBox.classList.add('active');
-        });
+                if(data.error) throw new Error(data.error);
+                if(!data.flights?.length) throw new Error('Uçuş bulunamadı');
 
-        searchInput.addEventListener('blur', () => {
-            if(!searchInput.value) {
-                searchBox.classList.remove('active');
+                activeFlight = flightNumber;
+                updateFlightDisplay(data.flights[0]);
+                enableChat();
+                showBotMessage(`✅ ${flightNumber} uçuşu takip ediliyor!`);
+                
+            } catch (error) {
+                showError(error.message);
+                disableChat();
             }
         });
 
-        // Message Handling
-        const sendBtn = document.querySelector('.send-btn');
-        const chatInput = document.querySelector('.chat-input input');
-        const chatBody = document.querySelector('.chat-body');
+        // Chat Fonksiyonları
+        async function sendMessage() {
+            const message = elements.chatInput.value.trim();
+            if(!message || !activeFlight) return;
 
-        sendBtn.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keypress', (e) => {
+            try {
+                addMessage(message, 'user');
+                elements.chatInput.value = '';
+                
+                const response = await fetch('/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(),
+                    },
+                    body: JSON.stringify({
+                        callsign: activeFlight,
+                        message: message
+                    }),
+                    timeout: API_TIMEOUT
+                });
+
+                const data = await response.json();
+                addMessage(data.response, 'bot');
+                
+            } catch (error) {
+                addMessage('⚠️ Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
+            }
+        }
+
+        // Yardımcı Fonksiyonlar
+        function updateFlightDisplay(data) {
+            elements.flightDetails.style.display = 'block';
+            document.getElementById('flightNumber').textContent = data.number;
+            document.getElementById('flightStatus').textContent = data.status;
+            document.getElementById('departureInfo').textContent = 
+                `${data.departure.airport} • ${data.departure.time}`;
+            document.getElementById('arrivalInfo').textContent = 
+                `${data.arrival.airport} • ${data.arrival.time}`;
+            document.getElementById('completionPercent').textContent = `%${data.progress}`;
+            document.getElementById('flightProgress').value = data.progress;
+            document.getElementById('timeRemaining').textContent = `Kalan Süre: ${data.remaining}`;
+        }
+        
+        function showBotMessage(message) {
+            // Check if the chat body exists
+            if (elements.chatBody) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bot-message';
+                messageDiv.innerHTML = message;
+                elements.chatBody.appendChild(messageDiv);
+                elements.chatBody.scrollTop = elements.chatBody.scrollHeight;
+            }
+        }
+
+        function enableChat() {
+            elements.chatInput.placeholder = `${activeFlight} hakkında soru sor...`;
+            elements.chatInput.disabled = false;
+            elements.sendBtn.disabled = false;
+        }
+
+        function disableChat() {
+            elements.chatInput.placeholder = "Önce uçuş numarası girin...";
+            elements.chatInput.disabled = true;
+            elements.sendBtn.disabled = true;
+        }
+
+        function addMessage(content, type = 'bot') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.innerHTML = content;
+            elements.chatBody.appendChild(messageDiv);
+            elements.chatBody.scrollTop = elements.chatBody.scrollHeight;
+        }
+
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.style.display = 'block';
+            setTimeout(() => elements.errorMessage.style.display = 'none', 5000);
+        }
+
+        // Event Listeners
+        elements.sendBtn.addEventListener('click', sendMessage);
+        elements.chatInput.addEventListener('keypress', (e) => {
             if(e.key === 'Enter') sendMessage();
         });
 
-        function sendMessage() {
-            const message = chatInput.value.trim();
-            if(message) {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'message user-message';
-                userDiv.textContent = message;
-                chatBody.appendChild(userDiv);
+        document.querySelector('.close-btn').addEventListener('click', () => {
+            document.querySelector('.chat-container').classList.remove('active');
+        });
 
-                setTimeout(() => {
-                    const botDiv = document.createElement('div');
-                    botDiv.className = 'message bot-message';
-                    botDiv.textContent = "I'm still learning. Please wait for the next week.";
-                    chatBody.appendChild(botDiv);
-                    chatBody.scrollTop = chatBody.scrollHeight;
-                }, 1000);
+        document.querySelector('.chat-toggle').addEventListener('click', () => {
+            document.querySelector('.chat-container').classList.toggle('active');
+        });
 
-                chatInput.value = '';
-                chatBody.scrollTop = chatBody.scrollHeight;
+        // CSRF Token
+        function getCSRFToken() {
+            const csrfMatch = document.cookie.match(/csrftoken=([\w-]+)/);
+            if (csrfMatch && csrfMatch.length > 1) {
+                return csrfMatch[1];
+            } else {
+                // If token not found in cookie, look for it in a meta tag
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (csrfToken) {
+                    return csrfToken.getAttribute('content');
+                }
+                console.error('CSRF token not found');
+                return '';
             }
         }
     </script>
