@@ -2,7 +2,7 @@ import requests
 import json
 from django.shortcuts import render
 from django.http import JsonResponse
-from datetime import datetime, timezone
+from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from langchain_groq import ChatGroq
 from langchain_core.output_parsers import StrOutputParser
@@ -22,18 +22,15 @@ def index(request):
     return render(request, 'index.html')
 
 def search_flight(request):
-    """Enhanced AJAX compatible search function"""
     if request.method == 'GET':
         flight_callsign = request.GET.get('flight', '').upper()
         if not flight_callsign:
             return JsonResponse({'error': 'Please enter a flight number!'}, status=400)
-
         try:
             flight_data = get_flight_data(flight_callsign)
             if 'error' in flight_data:
                 return JsonResponse({'error': flight_data['error']}, status=404)
             
-            # Data format compatible with frontend
             formatted_data = {
                 'number': flight_data.get('number', 'N/A'),
                 'status': flight_data.get('status', 'Unknown'),
@@ -50,45 +47,34 @@ def search_flight(request):
                 'remaining': flight_data.get('timeRemaining', 'N/A')
             }
             return JsonResponse({'flights': [formatted_data]})
-
         except Exception as e:
             return JsonResponse({'error': f'System error: {str(e)}'}, status=500)
-
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 @csrf_exempt
 def chat_assistant(request):
-    """Enhanced chatbot endpoint"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             callsign = data.get('callsign', '').upper()
             question = data.get('message', '').strip()
-            
-            # Validations
             if not callsign:
                 return JsonResponse({'error': 'Flight number is required!'}, status=400)
             if not question:
                 return JsonResponse({'error': 'Question field cannot be empty!'}, status=400)
-
-            # Get flight data
             flight_data = get_flight_data(callsign)
             if 'error' in flight_data:
                 return JsonResponse({'error': flight_data['error']}, status=404)
-
-            # Generate AI response
             response = generate_ai_response(flight_data, question)
             return JsonResponse({'response': response})
-
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': f'Internal server error: {str(e)}'}, status=500)
-    
     return JsonResponse({'error': 'Only POST requests are accepted'}, status=405)
 
 def get_flight_data(callsign: str) -> dict:
-    """Enhanced flight data retrieval function"""
+    """Enhanced flight data retrieval function with custom timeRemaining calculation"""
     try:
         response = requests.get(
             API_URL.format(callsign=callsign),
@@ -97,89 +83,85 @@ def get_flight_data(callsign: str) -> dict:
         )
         response.raise_for_status()
         flights = response.json()
-
         if not flights or not isinstance(flights, list):
             return {'error': 'No data found for this flight number'}
 
-        now_utc = datetime.now(timezone.utc)
+        now_local = datetime.now()
         valid_flights = []
-
         for flight in flights:
             if not isinstance(flight, dict):
                 continue
-                
             try:
-                dep_time = flight.get('departure', {})
-                if not isinstance(dep_time, dict):
-                    dep_time = {}
-                    
-                scheduled_time = dep_time.get('scheduledTime', {})
-                if not isinstance(scheduled_time, dict):
-                    scheduled_time = {}
-                    
-                dep_time_str = scheduled_time.get('local', '')
-                
-                dep_dt = datetime.fromisoformat(dep_time_str.replace('Z', '+00:00')) if dep_time_str else None
-                
+                dep_info = flight.get('departure', {})
+                scheduled = dep_info.get('scheduledTime', {})
+                dep_time_str = scheduled.get('local', '')
+                if dep_time_str:
+                    dep_clean = dep_time_str.replace('Z', '').split('+')[0]
+                    dep_dt = datetime.fromisoformat(dep_clean)
+                else:
+                    dep_dt = None
                 valid_flights.append({
                     'flight': flight,
                     'departure_dt': dep_dt,
-                    'is_future': dep_dt and dep_dt >= now_utc
+                    'is_future': dep_dt and dep_dt >= now_local
                 })
-            except Exception as e:
+            except Exception:
                 continue
 
         if not valid_flights:
             return {'error': 'No valid flight data available'}
 
-        # Priority order: 1) Future flights 2) Most recent flight
-        valid_flights.sort(key=lambda x: (
-            not x['is_future'],
-            x['departure_dt'] if x['departure_dt'] else datetime.min
-        ))
+        future_flights = [f for f in valid_flights if f['is_future']]
+        if future_flights:
+            selected = min(future_flights, key=lambda x: x['departure_dt'])['flight']
+        else:
+            selected = max(valid_flights, key=lambda x: x['departure_dt'])['flight']
 
-        selected = valid_flights[0]['flight']
-        
-        # Ensure we're dealing with dictionaries before using get()
+        # Process departure time
         departure = selected.get('departure', {})
-        if not isinstance(departure, dict):
-            departure = {}
-            
-        scheduled_time = departure.get('scheduledTime', {})
-        if not isinstance(scheduled_time, dict):
-            scheduled_time = {}
-            
-        dep_time_str = scheduled_time.get('local', '')
-        
-        arrival = selected.get('arrival', {})
-        if not isinstance(arrival, dict):
-            arrival = {}
-            
-        predicted_time = arrival.get('predictedTime', {})
-        if not isinstance(predicted_time, dict):
-            predicted_time = {}
-            
-        arr_time_str = predicted_time.get('local', '')
-        
-        dep_time = datetime.fromisoformat(dep_time_str.replace('Z', '+00:00')) if dep_time_str else None
-        arr_time = datetime.fromisoformat(arr_time_str.replace('Z', '+00:00')) if arr_time_str else None
-        
-        if dep_time and arr_time:
-            total_seconds = (arr_time - dep_time).total_seconds()
-            elapsed = (datetime.now(timezone.utc) - dep_time).total_seconds()
-            selected['completionPercent'] = min(100, max(0, int((elapsed / total_seconds) * 100)) if total_seconds > 0 else 0)
-            remaining = arr_time - datetime.now(timezone.utc)
-            selected['timeRemaining'] = f"{remaining.seconds // 3600}h {remaining.seconds % 3600 // 60}min" if remaining.days >= 0 else "0h 0min"
+        sched = departure.get('scheduledTime', {})
+        dep_time_str = sched.get('local', '')
+        if dep_time_str:
+            dep_clean = dep_time_str.replace('Z', '').split('+')[0]
+            dep_dt = datetime.fromisoformat(dep_clean)
+            sched['local'] = dep_dt.strftime('%d/%m/%Y %H:%M')
+        else:
+            sched['local'] = 'N/A'
+            dep_dt = None
 
-        # Data formatting
+        # Process arrival time
+        arrival = selected.get('arrival', {})
+        pred = arrival.get('predictedTime', {})
+        arr_time_str = pred.get('local', '')
+        if arr_time_str:
+            arr_clean = arr_time_str.replace('Z', '').split('+')[0]
+            arr_dt = datetime.fromisoformat(arr_clean)
+            pred['local'] = arr_dt.strftime('%d/%m/%Y %H:%M')
+        else:
+            pred['local'] = 'N/A'
+            arr_dt = None
+
+        # Calculate remaining time based on flight duration and current time
+        if dep_dt and arr_dt:
+            flight_duration = arr_dt - dep_dt
+            elapsed = now_local - dep_dt
+            remaining = flight_duration - elapsed
+            if remaining.total_seconds() > 0:
+                hours = remaining.seconds // 3600
+                minutes = (remaining.seconds % 3600) // 60
+                selected['timeRemaining'] = f"{hours}h {minutes}min"
+            else:
+                selected['timeRemaining'] = "0h 0min"
+            total_seconds = flight_duration.total_seconds()
+            selected['completionPercent'] = min(100, max(0, int((elapsed.total_seconds() / total_seconds) * 100)) if total_seconds > 0 else 0)
+
         number = selected.get('number', {})
         if isinstance(number, dict):
             selected['number'] = number.get('callSign', 'N/A')
         else:
             selected['number'] = 'N/A'
-            
+
         selected['status'] = 'En Route' if selected.get('status') == 'EnRoute' else selected.get('status', 'Unknown')
-        
         return selected
 
     except requests.exceptions.RequestException as e:
@@ -187,8 +169,8 @@ def get_flight_data(callsign: str) -> dict:
     except Exception as e:
         return {'error': f'Data processing error: {str(e)}'}
 
+
 def generate_ai_response(flight_data: dict, question: str) -> str:
-    """Optimized AI response generator"""
     try:
         prompt = f"""Use the following flight data to answer the user's question:
         {{
@@ -211,9 +193,7 @@ def generate_ai_response(flight_data: dict, question: str) -> str:
 
         Question: {question}
         """
-
         raw_response = ai_chain.invoke(prompt)
         return raw_response.split('</think>')[-1].strip() if '<think>' in raw_response else raw_response
-
     except Exception as e:
         return f"Could not generate response: {str(e)}"
