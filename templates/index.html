@@ -1,298 +1,925 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>SkyTrack Pro - Canlı Uçuş Takip</title>
+    <title>SkyTrack Pro - Real-Time Flight Tracking</title>
+    <meta name="description" content="Real-Time Flight Tracking System">
+    <meta name="author" content="SkyTrack">
+    <meta property="og:title" content="SkyTrack Pro - Real-Time Flight Tracking">
+    <meta property="og:description" content="Real-Time Flight Tracking System">
+    <meta property="og:type" content="website">
     {% load static %}
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Optimize Edilmiş CSS */
-        .flight-status-card {
-            background: rgba(15, 23, 42, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 25px auto;
-            max-width: 800px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            display: none; /* Başlangıçta gizli */
+        /* Tailwind-inspired styles */
+        html, body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a; /* bg-slate-900 */
+            color: white;
+            min-height: 100vh;
         }
-
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        header {
+            padding: 1.5rem 1rem;
+            text-align: center;
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .justify-center {
+            justify-content: center;
+        }
+        
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-3xl {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+        }
+        
+        .font-bold {
+            font-weight: 700;
+        }
+        
+        .text-white {
+            color: white;
+        }
+        
+        .text-slate-400 {
+            color: #94a3b8;
+        }
+        
+        .text-blue-500 {
+            color: #3b82f6;
+        }
+        
+        .flight-search-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s;
+        }
+        
+        .flight-search-form:hover {
+            box-shadow: 0 20px 25px -5px rgba(30, 64, 175, 0.2);
+        }
+        
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .text-xl {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+        }
+        
+        .font-semibold {
+            font-weight: 600;
+        }
+        
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+        
+        .relative {
+            position: relative;
+        }
+        
+        .absolute {
+            position: absolute;
+        }
+        
+        .left-3 {
+            left: 0.75rem;
+        }
+        
+        .top-1\/2 {
+            top: 50%;
+        }
+        
+        .transform {
+            transform: translateY(-50%);
+        }
+        
+        .w-full {
+            width: 100%;
+        }
+        
+        input {
+            width: 100%;
+            background-color: rgba(51, 65, 85, 0.5);
+            border: 1px solid #475569;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            padding-left: 2.5rem;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+            border-color: transparent;
+        }
+        
+        input::placeholder {
+            color: #94a3b8;
+        }
+        
+        button {
+            width: 100%;
+            margin-top: 1rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .error-message {
+            background-color: rgba(127, 29, 29, 0.7);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            text-align: center;
+            border: 1px solid #b91c1c;
+        }
+        
+        .flight-status-card {
+            max-width: 800px;
+            margin: 2rem auto;
+            background-color: rgba(30, 41, 59, 0.7);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            backdrop-filter: blur(8px);
+        }
+        
         .flight-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.7);
         }
-
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .bg-blue-600 {
+            background-color: #2563eb;
+        }
+        
+        .bg-amber-600 {
+            background-color: #d97706;
+        }
+        
+        .bg-red-600 {
+            background-color: #dc2626;
+        }
+        
+        .flight-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .flight-info-item {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
         .flight-progress {
-            margin: 20px 0;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 15px;
+            background-color: rgba(15, 23, 42, 0.5);
+            padding: 1rem;
+            border-radius: 0.75rem;
         }
-
-        .ai-response {
-            border-left: 3px solid #3b82f6;
-            padding-left: 15px;
-            margin: 10px 0;
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+        }
+        
+        .h-2 {
+            height: 0.5rem;
+        }
+        
+        .rounded-full {
+            border-radius: 9999px;
+        }
+        
+        .bg-slate-700 {
+            background-color: #334155;
+        }
+        
+        .pt-1 {
+            padding-top: 0.25rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        /* Chat styling */
+        #chatAssistant {
+            position: fixed;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            z-index: 50;
+        }
+        
+        #chatToggleBtn {
+            height: 3.5rem;
+            width: 3.5rem;
+            border-radius: 9999px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background-color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        #chatToggleBtn:hover {
+            background-color: #1d4ed8;
+        }
+        
+        #chatWindow {
+            position: fixed;
+            bottom: 5rem;
+            right: 1.25rem;
+            width: 20rem;
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
+        }
+        
+        @media (min-width: 768px) {
+            #chatWindow {
+                width: 24rem;
+            }
+        }
+        
+        .chat-header {
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #chatMessages {
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 20rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            background-color: #0f172a;
+        }
+        
+        .message {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            max-width: 90%;
+            word-break: break-word;
+        }
+        
+        .bot-message {
+            background-color: #1e293b;
+            color: white;
+            align-self: flex-start;
+            border-top-left-radius: 0;
+        }
+        
+        .user-message {
+            background-color: #2563eb;
+            color: white;
+            align-self: flex-end;
+            border-top-right-radius: 0;
+        }
+        
+        .ai-capabilities {
+            list-style-type: none;
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+        }
+        
+        #chatWindow.expanded {
+            width: 90vw;
+            max-width: 600px;
+            height: 80vh;
+        }
+        
+        #chatWindow.expanded #chatMessages {
+            max-height: calc(80vh - 120px);
+        }
+        
+        /* Toast notifications */
+        #toastContainer {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .toast {
+            background-color: white;
+            color: #1e293b;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 24rem;
+            animation: slide-in 0.2s ease-out;
+        }
+        
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+        
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        @keyframes slide-in {
+            from {
+                transform: translateY(-1rem);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Search history */
+        #searchHistoryContainer {
+            margin-top: 1.5rem;
+            background-color: rgba(30, 41, 59, 0.8);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        #searchHistoryList {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        #searchHistoryList li {
+            font-size: 0.875rem;
+            background-color: #334155;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        
+        #searchHistoryList li:hover {
+            background-color: #475569;
         }
     </style>
 </head>
 <body>
-    <header class="header-container">
-        <h1>✈️ SkyTrack Pro</h1>
-        <p class="header-subtitle">Gerçek Zamanlı Uçuş Takip Sistemi</p>
+    <header>
+        <div class="flex items-center justify-center gap-2 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plane"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+            <h1 class="text-3xl font-bold text-white">SkyTrack Pro</h1>
+        </div>
+        <p class="text-slate-400">Real-Time Flight Tracking System</p>
     </header>
-
+    
     <main class="container">
-        <!-- Uçuş Arama Bölümü -->
         <div class="search-container">
-            <form id="flightForm" class="flight-search-form">
-                <div class="search-box">
+            <form id="flightSearchForm" class="flight-search-form">
+                <div class="space-y-2 mb-4">
+                    <h2 class="text-xl font-semibold text-white">Flight Tracking</h2>
+                    <p class="text-slate-400 text-sm">Enter a flight number to get real-time tracking information</p>
+                </div>
+                
+                <div class="search-box relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 transform"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     <input
                         type="text"
-                        id="flightInput"
-                        class="search-input"
-                        placeholder="Uçuş numarası girin (Örn: TK123)"
+                        id="flightNumberInput"
+                        placeholder="Enter flight number (Example: TK123)"
                         pattern="[A-Za-z]{2,3}\d{1,4}"
                         required
                     >
-                    <i class="fas fa-search search-icon"></i>
                 </div>
-                <button type="submit" class="search-btn">
-                    <i class="fas fa-plane-departure"></i> Uçuşu Takip Et
+                
+                <button 
+                    type="submit" 
+                    id="searchButton"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                    <span>Track Flight</span>
                 </button>
             </form>
         </div>
-
-        <!-- Uçuş Detayları -->
-        <div id="flightDetails" class="flight-status-card">
-            <div class="flight-header">
-                <h2 id="flightNumber"></h2>
-                <span id="flightStatus" class="status-badge"></span>
-            </div>
-            
-            <div class="flight-info-grid">
-                <div class="flight-info-item">
-                    <i class="fas fa-plane-departure"></i>
-                    <div>
-                        <h3>Kalkış</h3>
-                        <p id="departureInfo"></p>
-                    </div>
-                </div>
-                
-                <div class="flight-info-item">
-                    <i class="fas fa-plane-arrival"></i>
-                    <div>
-                        <h3>Varış</h3>
-                        <p id="arrivalInfo"></p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flight-progress">
-                <div class="progress-header">
-                    <span>Uçuş İlerlemesi</span>
-                    <span id="completionPercent"></span>
-                </div>
-                <progress id="flightProgress" value="0" max="100"></progress>
-                <div class="time-remaining" id="timeRemaining"></div>
-            </div>
-        </div>
-
-        <!-- Hata Mesajları -->
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
-    </main>
-
-    <!-- Akıllı Asistan -->
-    <div class="chat-container">
-        <div class="chat-header">
-            <h3><i class="fas fa-robot"></i> SkyAI Asistan</h3>
-            <button class="close-btn">&times;</button>
-        </div>
-        <div class="chat-body" id="chatBody">
-            <div class="message bot-message">
-                🛫 Merhaba! Bir uçuş numarası girerek başlayın. Size şunları söyleyebilirim:
-                <ul class="ai-capabilities">
-                    <li>✔️ Gerçek zamanlı durum</li>
-                    <li>✔️ Tahmini varış süresi</li>
-                    <li>✔️ Hava durumu bilgisi</li>
-                </ul>
-            </div>
-        </div>
-        <div class="chat-input">
-            <input 
-                type="text" 
-                id="chatInput" 
-                placeholder="Önce uçuş numarası girin..."
-                disabled
-            >
-            <button id="sendBtn" class="send-btn" disabled>
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </div>
-    </div>
-    <div class="chat-toggle">
-        <i class="fas fa-comments"></i>
-    </div>
-
-    <script>
-        // Sistem Genel Ayarları
-        let activeFlight = null;
-        const API_TIMEOUT = 15000; // 15 saniye
-
-        // DOM Elementleri
-        const elements = {
-            flightForm: document.getElementById('flightForm'),
-            flightInput: document.getElementById('flightInput'),
-            chatInput: document.getElementById('chatInput'),
-            sendBtn: document.getElementById('sendBtn'),
-            chatBody: document.getElementById('chatBody'),
-            flightDetails: document.getElementById('flightDetails'),
-            errorMessage: document.getElementById('errorMessage')
-        };
-
-        // Uçuş Takip Formu
-        elements.flightForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const flightNumber = elements.flightInput.value.trim().toUpperCase();
-            
-            if(!/^[A-Z]{2,3}\d{1,4}$/.test(flightNumber)) {
-                showError('Geçersiz uçuş formatı! Örnek: TK123');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/search/?flight=${flightNumber}`);
-                const data = await response.json();
-
-                if(data.error) throw new Error(data.error);
-                if(!data.flights?.length) throw new Error('Uçuş bulunamadı');
-
-                activeFlight = flightNumber;
-                updateFlightDisplay(data.flights[0]);
-                enableChat();
-                showBotMessage(`✅ ${flightNumber} uçuşu takip ediliyor!`);
-                
-            } catch (error) {
-                showError(error.message);
-                disableChat();
-            }
-        });
-
-        // Chat Fonksiyonları
-        async function sendMessage() {
-            const message = elements.chatInput.value.trim();
-            if(!message || !activeFlight) return;
-
-            try {
-                addMessage(message, 'user');
-                elements.chatInput.value = '';
-                
-                const response = await fetch('/chat/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken(),
-                    },
-                    body: JSON.stringify({
-                        callsign: activeFlight,
-                        message: message
-                    }),
-                    timeout: API_TIMEOUT
-                });
-
-                const data = await response.json();
-                addMessage(data.response, 'bot');
-                
-            } catch (error) {
-                addMessage('⚠️ Bağlantı hatası. Lütfen tekrar deneyin.', 'error');
-            }
-        }
-
-        // Yardımcı Fonksiyonlar
-        function updateFlightDisplay(data) {
-            elements.flightDetails.style.display = 'block';
-            document.getElementById('flightNumber').textContent = data.number;
-            document.getElementById('flightStatus').textContent = data.status;
-            document.getElementById('departureInfo').textContent = 
-                `${data.departure.airport} • ${data.departure.time}`;
-            document.getElementById('arrivalInfo').textContent = 
-                `${data.arrival.airport} • ${data.arrival.time}`;
-            document.getElementById('completionPercent').textContent = `%${data.progress}`;
-            document.getElementById('flightProgress').value = data.progress;
-            document.getElementById('timeRemaining').textContent = `Kalan Süre: ${data.remaining}`;
-        }
         
-        function showBotMessage(message) {
-            // Check if the chat body exists
-            if (elements.chatBody) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message bot-message';
-                messageDiv.innerHTML = message;
-                elements.chatBody.appendChild(messageDiv);
-                elements.chatBody.scrollTop = elements.chatBody.scrollHeight;
-            }
-        }
+        <div id="errorMessage" class="error-message hidden">
+            <p></p>
+        </div>
+        
+        <div id="flightDetailsContainer" class="flight-status-card hidden">
+            <!-- Flight details will be inserted here dynamically -->
+        </div>
 
-        function enableChat() {
-            elements.chatInput.placeholder = `${activeFlight} hakkında soru sor...`;
-            elements.chatInput.disabled = false;
-            elements.sendBtn.disabled = false;
-        }
+        <div id="searchHistoryContainer" class="hidden">
+            <h3 class="text-white text-lg font-medium mb-2">Search History</h3>
+            <ul id="searchHistoryList">
+                <!-- Search history items will be inserted here dynamically -->qq
+            </ul>
+        </div>
+    </main>
+    
+    <!-- Chat Assistant -->
+    <div id="chatAssistant">
+        <button id="chatToggleBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </button>
+        
+        <div id="chatWindow" class="hidden">
+            <div class="chat-header">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                    <span class="font-medium text-white">SkyAI Assistant</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="expandChatBtn" class="p-1 rounded text-slate-400 hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                    </button>
+                    <button id="closeChatBtn" class="p-1 rounded text-slate-400 hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="chatMessages">
+                <div class="message bot-message">
+                    🛫 Hello! Start by entering a flight number above there Please. I can tell you:
+                    <ul class="ai-capabilities">
+                        <li>✔️ Anything you want to know about this flight.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="p-3 border-t border-slate-700 flex gap-2" style="background-color: #1e293b;">
+                <input
+                    type="text"
+                    id="chatInput"
+                    placeholder="Ask about a flight..."
+                    disabled
+                    style="background-color: #334155; flex: 1; border-radius: 0.5rem; padding: 0.5rem 0.75rem; color: white; border: none; outline: none;"
+                >
+                <button 
+                    id="sendMessageBtn"
+                    disabled
+                    style="width: auto; margin: 0; background-color: #2563eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem;"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast notifications -->
+    <div id="toastContainer"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const flightSearchForm = document.getElementById('flightSearchForm');
+            const flightNumberInput = document.getElementById('flightNumberInput');
+            const errorMessage = document.getElementById('errorMessage');
+            const flightDetailsContainer = document.getElementById('flightDetailsContainer');
+            const searchHistoryContainer = document.getElementById('searchHistoryContainer');
+            const searchHistoryList = document.getElementById('searchHistoryList');
+            
+            // Chat elements
+            const chatToggleBtn = document.getElementById('chatToggleBtn');
+            const chatWindow = document.getElementById('chatWindow');
+            const closeChatBtn = document.getElementById('closeChatBtn');
+            const expandChatBtn = document.getElementById('expandChatBtn');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            
+            // State
+            let activeFlight = null;
+            let searchHistory = [];
+            
+            // API constants
+            const API_TIMEOUT = 1500; // 1.5 seconds
 
-        function disableChat() {
-            elements.chatInput.placeholder = "Önce uçuş numarası girin...";
-            elements.chatInput.disabled = true;
-            elements.sendBtn.disabled = true;
-        }
-
-        function addMessage(content, type = 'bot') {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}-message`;
-            messageDiv.innerHTML = content;
-            elements.chatBody.appendChild(messageDiv);
-            elements.chatBody.scrollTop = elements.chatBody.scrollHeight;
-        }
-
-        function showError(message) {
-            elements.errorMessage.textContent = message;
-            elements.errorMessage.style.display = 'block';
-            setTimeout(() => elements.errorMessage.style.display = 'none', 5000);
-        }
-
-        // Event Listeners
-        elements.sendBtn.addEventListener('click', sendMessage);
-        elements.chatInput.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') sendMessage();
-        });
-
-        document.querySelector('.close-btn').addEventListener('click', () => {
-            document.querySelector('.chat-container').classList.remove('active');
-        });
-
-        document.querySelector('.chat-toggle').addEventListener('click', () => {
-            document.querySelector('.chat-container').classList.toggle('active');
-        });
-
-        // CSRF Token
-        function getCSRFToken() {
-            const csrfMatch = document.cookie.match(/csrftoken=([\w-]+)/);
-            if (csrfMatch && csrfMatch.length > 1) {
-                return csrfMatch[1];
-            } else {
-                // If token not found in cookie, look for it in a meta tag
-                const csrfToken = document.querySelector('meta[name="csrf-token"]');
-                if (csrfToken) {
-                    return csrfToken.getAttribute('content');
+            // Initialize
+            loadSearchHistory();
+            
+            // Event Listeners
+            flightSearchForm.addEventListener('submit', handleFlightSearch);
+            chatToggleBtn.addEventListener('click', toggleChat);
+            closeChatBtn.addEventListener('click', closeChat);
+            expandChatBtn.addEventListener('click', toggleExpandChat);
+            sendMessageBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
                 }
-                console.error('CSRF token not found');
-                return '';
+            });
+            
+            // Functions
+            async function handleFlightSearch(e) {
+                e.preventDefault();
+                
+                const flightNumber = flightNumberInput.value.trim().toUpperCase();
+                
+                if (!/^[A-Za-z]{2,3}\d{1,4}$/.test(flightNumber)) {
+                    showToast('Invalid flight format! Example: TK123', 'error');
+                    errorMessage.querySelector('p').textContent = 'Invalid flight format! Example: TK123';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/search/?flight=${flightNumber}`);
+                    const data = await response.json();
+                    
+                    if(data.error) throw new Error(data.error);
+                    if(!data.flights?.length) throw new Error('Flight not found');
+                    
+                    displayFlightDetails(data.flights[0]);
+                    const isNewFlight = activeFlight !== flightNumber;
+                    activeFlight = flightNumber;
+                    addFlightToSearchHistory(flightNumber);
+                    errorMessage.classList.add('hidden');
+                    enableChat();
+                    
+                    if (isNewFlight) {
+                        showToast(`Now tracking flight ${flightNumber}!`, 'success');
+                        // Add bot message about tracking only for new flights
+                        addChatMessage(`✅ Now tracking flight ${flightNumber}!`, 'bot');
+                    }
+                    
+                } catch (error) {
+                    errorMessage.querySelector('p').textContent = error.message || 'An error occurred';
+                    errorMessage.classList.remove('hidden');
+                    flightDetailsContainer.classList.add('hidden');
+                    disableChat();
+                    showToast(error.message || 'An error occurred', 'error');
+                }
             }
-        }
+            
+            function displayFlightDetails(flight) {
+                // Determine status class for badge
+                const getStatusClass = (status) => {
+                    status = status.toLowerCase();
+                    if (status.includes('delay') || status.includes('late')) return 'bg-amber-600';
+                    if (status.includes('cancel')) return 'bg-red-600';
+                    return 'bg-blue-600';
+                };
+                
+                const statusClass = getStatusClass(flight.status);
+                
+                const html = `
+                    <div class="flight-header">
+                        <h2 class="text-xl font-semibold flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                            ${flight.callsign || flight.ident || flight.flight_number || flight.flightNumber || activeFlight || 'Flight Info of '}
+                        </h2>
+                        <span class="status-badge ${statusClass}">
+                            ${flight.status}
+                        </span>
+                    </div>
+                    
+                    <div class="flight-info-grid">
+                        <div class="flight-info-item" style="background-color: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 0.75rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-45deg); margin-top: 0.25rem;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                            <div>
+                                <h3 style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Departure</h3>
+                                <p style="color: white; font-weight: 600;">${flight.departure.airport}</p>
+                                <p style="font-size: 0.875rem; color: #94a3b8;">${flight.departure.time}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flight-info-item" style="background-color: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 0.75rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(45deg); margin-top: 0.25rem;"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+                            <div>
+                                <h3 style="font-size: 0.875rem; font-weight: 500; color: #cbd5e1;">Arrival</h3>
+                                <p style="color: white; font-weight: 600;">${flight.arrival.airport}</p>
+                                <p style="font-size: 0.875rem; color: #94a3b8;">${flight.arrival.time}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flight-progress">
+                        <div class="progress-header">
+                            <span class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Flight Progress
+                            </span>
+                            <span>${flight.progress}%</span>
+                        </div>
+                        
+                        <div class="relative pt-1">
+                            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-slate-700">
+                                <div 
+                                    style="width: ${flight.progress}%; background: linear-gradient(to right, #3b82f6, #2563eb);" 
+                                    class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"
+                                ></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between text-xs text-slate-400">
+                            <div>Remaining Time for Departure: ${flight.remaining} </div>
+                        </div>
+                    </div>
+                `;
+                
+                flightDetailsContainer.innerHTML = html;
+                flightDetailsContainer.classList.remove('hidden');
+            }
+            
+            function loadSearchHistory() {
+                const storedHistory = localStorage.getItem('flightSearchHistory');
+                if (storedHistory) {
+                    searchHistory = JSON.parse(storedHistory);
+                    displaySearchHistory();
+                }
+            }
+            
+            function addFlightToSearchHistory(flightNumber) {
+                // Remove if it exists already
+                searchHistory = searchHistory.filter(flight => flight !== flightNumber);
+                
+                // Add to beginning
+                searchHistory.unshift(flightNumber);
+                
+                // Keep only 10 items
+                searchHistory = searchHistory.slice(0, 10);
+                
+                // Save to localStorage
+                localStorage.setItem('flightSearchHistory', JSON.stringify(searchHistory));
+                
+                // Update display
+                displaySearchHistory();
+            }
+            
+            function displaySearchHistory() {
+                if (searchHistory.length === 0) {
+                    searchHistoryContainer.classList.add('hidden');
+                    return;
+                }
+                
+                searchHistoryList.innerHTML = '';
+                searchHistory.forEach(flight => {
+                    const li = document.createElement('li');
+                    li.textContent = flight;
+                    li.addEventListener('click', () => {
+                        flightNumberInput.value = flight;
+                        flightSearchForm.dispatchEvent(new Event('submit'));
+                    });
+                    searchHistoryList.appendChild(li);
+                });
+                
+                searchHistoryContainer.classList.remove('hidden');
+            }
+            
+            function toggleChat() {
+                chatWindow.classList.toggle('hidden');
+            }
+            
+            function closeChat() {
+                chatWindow.classList.add('hidden');
+            }
+            
+            function toggleExpandChat() {
+                chatWindow.classList.toggle('expanded');
+                
+                if (chatWindow.classList.contains('expanded')) {
+                    expandChatBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-minimize-2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+                } else {
+                    expandChatBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-maximize-2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+                }
+                
+                scrollToBottom();
+            }
+            
+            async function sendMessage() {
+                const message = chatInput.value.trim();
+                
+                if (!message || !activeFlight) {
+                    if (!activeFlight) {
+                        addChatMessage("⚠️ Please track a flight first before asking questions.", "bot");
+                    }
+                    return;
+                }
+                
+                // Add user message
+                addChatMessage(message, 'user');
+                chatInput.value = '';
+                
+                // Add loading message
+                const loadingMsgId = addChatMessage('<div style="display: flex; align-items: center; gap: 0.5rem;"><div style="animation: pulse 1.5s infinite;">⌛</div><div>Preparing response...</div></div>', 'bot');
+                
+                try {
+                    const response = await fetch('/chat/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCSRFToken(),
+                        },
+                        body: JSON.stringify({
+                            callsign: activeFlight,
+                            message: message
+                        })
+                    });
+
+                    // Remove loading message
+                    const loadingMsg = document.getElementById(loadingMsgId);
+                    if (loadingMsg) {
+                        loadingMsg.remove();
+                    }
+                    
+                    const data = await response.json();
+                    addChatMessage(data.response, 'bot');
+                    
+                } catch (error) {
+                    // Remove loading message
+                    const loadingMsg = document.getElementById(loadingMsgId);
+                    if (loadingMsg) {
+                        loadingMsg.remove();
+                    }
+                    
+                    addChatMessage('⚠️ Connection error. Please try again.', 'bot');
+                }
+            }
+            
+            function enableChat() {
+                chatInput.placeholder = `Ask about ${activeFlight}...`;
+                chatInput.disabled = false;
+                sendMessageBtn.disabled = false;
+            }
+            
+            function disableChat() {
+                chatInput.placeholder = "Ask about a flight...";
+                chatInput.disabled = true;
+                sendMessageBtn.disabled = true;
+            }
+            
+            function addChatMessage(content, type = 'bot') {
+                const messageId = 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                const messageDiv = document.createElement('div');
+                messageDiv.id = messageId;
+                messageDiv.className = `message ${type}-message`;
+                messageDiv.innerHTML = content;
+                
+                chatMessages.appendChild(messageDiv);
+                scrollToBottom();
+                
+                return messageId;
+            }
+            
+            function scrollToBottom() {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function showToast(message, type = 'success') {
+                const toastContainer = document.getElementById('toastContainer');
+                
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const icon = document.createElement('span');
+                if (type === 'success') {
+                    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+                } else {
+                    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>';
+                }
+                
+                const text = document.createElement('span');
+                text.textContent = message;
+                
+                toast.appendChild(icon);
+                toast.appendChild(text);
+                
+                toastContainer.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(-1rem)';
+                    toast.style.transition = 'opacity 0.3s, transform 0.3s';
+                    
+                    setTimeout(() => {
+                        toastContainer.removeChild(toast);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // CSRF Token function from original code
+            function getCSRFToken() {
+                const csrfMatch = document.cookie.match(/csrftoken=([\w-]+)/);
+                if (csrfMatch && csrfMatch.length > 1) {
+                    return csrfMatch[1];
+                } else {
+                    // If token not found in cookie, look for it in a meta tag
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                    if (csrfToken) {
+                        return csrfToken.getAttribute('content');
+                    }
+                    console.error('CSRF token not found');
+                    return '';
+                }
+            }
+            
+            // Define keyframe animation for loading indicator
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                    100% { opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        });
     </script>
 </body>
 </html>
