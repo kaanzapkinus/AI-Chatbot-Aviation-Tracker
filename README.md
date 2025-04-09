@@ -7,18 +7,19 @@
 
 ## 0. Requirements & How to Run
 
-GitHub Repo: [https://github.com/kaanzapkinus/AI-Chatbot-Aviation-Tracker](https://github.com/kaanzapkinus/AI-Chatbot-Aviation-Tracker)
+GitHub Repository: [https://github.com/kaanzapkinus/AI-Chatbot-Aviation-Tracker](https://github.com/kaanzapkinus/AI-Chatbot-Aviation-Tracker)
 
-To run the project:
+To run the project locally:
 
-1. Install Python (version 3.10 or above) on your system.  
-2. Open a terminal in the project directory and run:  
+1. Install **Python 3.10** or above on your system.  
+2. Open a terminal in the project directory.  
+3. Install dependencies with:  
    **pip install -r requirements.txt**  
-3. Apply database migrations:  
+4. Apply database migrations:  
    **python manage.py migrate**  
-4. Start the server:  
+5. Start the Django development server:  
    **python manage.py runserver**  
-5. Open your browser and go to:  
+6. Open your browser and navigate to:  
    **http://127.0.0.1:8000/**
 
 ---
@@ -79,9 +80,9 @@ The system combines a strong backend with live data from the Aerodatabox API. It
   - *chat_assistant* – *Sends user queries and flight data to the AI, then returns structured responses.*
 
 - **Prompt Engineering**:
-  - Limit responses to 2 sentences
-  - Use consistent date/time formats
-  - Keep responses flight-specific
+  - Limit responses to 2 sentences  
+  - Use consistent date/time formats  
+  - Keep responses flight-specific  
   - Enforce clear language and measurement units
 
 - **Data Handling**: Includes error handling for API failures and selects the most relevant flight when multiple matches exist. Also calculates progress and remaining time.
@@ -101,13 +102,10 @@ The system combines a strong backend with live data from the Aerodatabox API. It
 
 ## 5. Conclusion
 
-The AI Chatbot Aviation Tracker combines a Django backend with AI to create a simple yet powerful flight tracking system. It delivers responsive performance and accurate results while handling real-time data challenges effectively.
+The AI Chatbot Aviation Tracker successfully brings together a Django backend, real-time flight data, and natural language AI to deliver a modern flight tracking experience. The system allows users to ask simple questions about flights—such as delays, departure times, or arrival details—and receive clear and accurate answers instantly through an interactive chat interface.
 
-### Future Enhancements:
-- **Advanced Predictive Analytics**: Improve delay forecasting and notifications.
-- **Expanded Data Integration**: Add more data sources to verify and enrich flight info.
-- **Enhanced UI/UX**: Refine design and accessibility based on feedback and best practices.
+Throughout the development process, we focused on stability, data accuracy, and a smooth user experience. By using trusted APIs and carefully structured prompts, the AI component was able to provide relevant responses without going off-topic. Features like visual flight progress, smooth data updates, and clean design helped create a better user experience overall.
 
-**In summary**, this project lays a strong foundation for using AI and live data in aviation, improving how users access and understand flight information.
+All key objectives of the project have been met. The system works without the need for future updates or additions. It is complete, functional, and capable of supporting real-world usage. The AI Chatbot Aviation Tracker shows how modern technologies like large language models and live APIs can be combined effectively in a web-based application.
 
 ---
